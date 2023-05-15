@@ -3,26 +3,23 @@ use crate::commands::Commands;
 
 mod input;
 mod commands;
+mod save;
+mod args;
 
 fn main() -> Result<()> {
-    run()
+    loop {
+        match run() {
+            Ok(_) => return Ok(()),
+            Err(e) => println!("{e}")
+        }
+    }
 }
 
 fn run() -> Result<()> {
     loop {
-        let command = match input::handle() {
-            Ok(command) => {
-                dbg!(&command);
-                command
-            }
-            Err(e) => {
-                println!("{e}");
-                continue;
-            }
-        };
-
+        let command = input::handle()?;
         match command {
-            Commands::Save(_) => { dbg!(&command); }
+            Commands::Save(urls) => save::handle(&urls)?,
             Commands::Get => { dbg!(&command); }
             Commands::Exit => return Ok(())
         }
