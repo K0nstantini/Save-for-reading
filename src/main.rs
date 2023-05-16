@@ -5,6 +5,7 @@ mod input;
 mod commands;
 mod save;
 mod args;
+mod util;
 
 fn main() -> Result<()> {
     loop {

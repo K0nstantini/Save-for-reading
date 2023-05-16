@@ -1,16 +1,44 @@
 use std::fs::{File, OpenOptions};
+use std::io::{Read, Write};
+
 use anyhow::{bail, Context, Result};
 use clap::Parser;
 use reqwest::StatusCode;
+
 use crate::args::Args;
+use crate::util::StringOperations;
+
+trait FileOperations {
+    fn check_duplicates(&mut self, strings: &[String]) -> Result<&mut Self>;
+    fn write_to_file(&mut self, strings: &[String]) -> Result<()>;
+}
+
+impl FileOperations for File {
+    fn check_duplicates(&mut self, strings: &[String]) -> Result<&mut Self> {
+        let mut contents = String::new();
+        self.read_to_string(&mut contents)?;
+        strings
+            .iter()
+            .try_for_each(|s| contents.contains_url(s))?;
+        Ok(self)
+    }
+
+    fn write_to_file(&mut self, strings: &[String]) -> Result<()> {
+        let string = format!("\n{}", strings.join(" "));
+        self.write_all(string.as_bytes())?;
+        Ok(())
+    }
+}
 
 pub fn handle(urls: &[String]) -> Result<()> {
     urls
-        .into_iter()
-        .map(check_url)
-        .collect::<Result<_>>()?;
+        .iter()
+        .try_for_each(check_url)?;
 
-    // let file = get_file()?;
+    get_file()?
+        .check_duplicates(urls)?
+        .write_to_file(urls)?;
+
     Ok(())
 }
 
@@ -26,10 +54,6 @@ fn get_file() -> Result<File> {
 }
 
 fn check_url(url: &String) -> Result<()> {
-    let res = reqwest::blocking::get(url)
-        .context("Invalid url")?;
-    if res.status() != StatusCode::OK {
-        bail!("Invalid url");
-    }
+    reqwest::blocking::get(url).context("Invalid url")?;
     Ok(())
 }
